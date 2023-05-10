@@ -40,4 +40,4 @@ jobs:
         cd src
         dotnet pack --nologo --configuration Release --output ../.artifacts
         cd ../.artifacts
-        dotnet nuget push -s "https://api.nuget.org/v3/index.json" -k  ${{ secrets.NUGETAPIKEY }} *.nupkg
+        dotnet nuget push -s "https://api.nuget.org/v3/index.json" -k ${{ secrets.NUGETAPIKEY }} *.nupkg
