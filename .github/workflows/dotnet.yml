@@ -4,6 +4,12 @@
 name: .NET
 
 on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Manual build to solve some external configuration issues.'
+        required: false
+        type: boolean
   push:
     branches: [ "main" ]
   pull_request:
