@@ -26,6 +26,7 @@ namespace Apparatus
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
+    using System;
 
     using System.Text.RegularExpressions;
 
@@ -226,17 +227,19 @@ namespace Apparatus
         /// <summary>
         /// Convert thisIs_it to ThisIsIt
         /// </summary>
-        /// <param name="src"></param>
-        /// <returns></returns>
+        /// <param name="src">String that needed to be updated. Note: this string is not updated.</param>
+        /// <param name="preserveUnderscores">Preserve underscores.</param>
+        /// <param name="useRawNames"></param>
+        /// <returns>New updated string.</returns>
         [DebuggerStepThrough]
-        public static string ToPascalCase(this string src)
+        public static string ToPascalCase(this string src, bool preserveUnderscores = false, bool useRawNames = false)
         {
+            if(string.IsNullOrWhiteSpace(src)) return src;
+            
             Span<char> convertedName = stackalloc char[src.Length];
             int index = 0;
             bool next2upper = true;
             bool allUpper = true;
-            bool preserveUnderscores = false;
-            bool useRawNames = false;
 
             // checks for names in all CAPS
             foreach (char c in src)
@@ -297,6 +300,7 @@ namespace Apparatus
         /// Convert ThisIs_it to thisIsIt
         /// </summary>
         /// <param name="src"></param>
+        /// <param name="useCurrentCulture"></param>
         /// <returns></returns>
         [DebuggerStepThrough]
         public static string ToCamelCase(this string src, bool useCurrentCulture = false)

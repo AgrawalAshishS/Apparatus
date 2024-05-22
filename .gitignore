@@ -160,3 +160,4 @@ $RECYCLE.BIN/
 nuget.exe
 _distribution/
 [Dd]ocument/
+.aider*

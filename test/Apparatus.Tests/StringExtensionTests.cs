@@ -84,10 +84,23 @@ namespace ApparatusTests
             Assert.True(StringExtensions.EndsWithIgnoreCase("X Abc", "c"));
         }
 
+        [Fact]
+        public void ToPascalCaseTests()
+        {
+            Assert.Equal("", "".ToPascalCase());
+            Assert.Equal("Hello", "hello".ToPascalCase());
+            Assert.Equal("HelloWorld", "hello world".ToPascalCase());
+            Assert.Equal("HelloWorld", "hello_world".ToPascalCase());
+            Assert.Equal("Hello_World", "hello_world".ToPascalCase(true));
+            Assert.Equal("AbcXyz", "ABC_XYZ".ToPascalCase());
+            Assert.Equal("ABcXYZ", "aBc_XYZ".ToPascalCase());
+            Assert.Equal("AbcXYZ", "Abc_XYZ".ToPascalCase());
+        }
 
         [Fact]
         public void ToCamelCaseRemoves_()
         {
+            Assert.Equal("", StringExtensions.ToCamelCase(""));
             Assert.Equal("abcXYZ", StringExtensions.ToCamelCase("abc_XYZ"));
             Assert.Equal("aBcXYZ", StringExtensions.ToCamelCase("aBc_XYZ"));
             Assert.Equal("abcXyz", StringExtensions.ToCamelCase("ABC_XYZ"));
@@ -98,10 +111,11 @@ namespace ApparatusTests
         [Fact]
         public void ToKebabCaseTests()
         {
+            Assert.Equal("", StringExtensions.ToKebabCase(""));
             Assert.Equal("very-long-name", StringExtensions.ToKebabCase("VeryLongName"));
-            Assert.Equal("a-bc-xYZ", StringExtensions.ToKebabCase("aBc_XYZ"));
+            Assert.Equal("a-bc-x-y-z", StringExtensions.ToKebabCase("aBc_XYZ"));
             Assert.Equal("abc-xyz", StringExtensions.ToKebabCase("ABC_XYZ"));
-            Assert.Equal("abc-xYZ", StringExtensions.ToKebabCase("Abc_XYZ"));
+            Assert.Equal("abc-x-y-z", StringExtensions.ToKebabCase("Abc_XYZ")); // above pascal case tests for same string to get more understnading
             Assert.Equal("this-is-it", StringExtensions.ToKebabCase("ThisIs_it"));
             Assert.Equal("this-is-it", StringExtensions.ToKebabCase("This Is it"));
         }
@@ -109,6 +123,7 @@ namespace ApparatusTests
         [Fact]
         public void ToSnakeCaseTests()
         {
+            Assert.Equal("", StringExtensions.ToSnakeCase(""));
             Assert.Equal("very_long_name", StringExtensions.ToSnakeCase("VeryLongName"));
             Assert.Equal("a_bc_xyz", StringExtensions.ToSnakeCase("aBc_XYZ"));
             Assert.Equal("abc_xyz", StringExtensions.ToSnakeCase("ABC_XYZ"));

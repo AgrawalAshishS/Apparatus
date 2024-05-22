@@ -81,7 +81,7 @@ namespace Apparatus
         public static List<T> FillCollection<T>(this IDataReader dr) where T : IHydrator, new()
         {
             var retVal = new List<T>();
-            FillCollection(dr, true, retVal);
+            FillCollection<T>(dr, true, retVal);
             return retVal;
         }
 
@@ -105,7 +105,7 @@ namespace Apparatus
             where T : IHydrator, new()
         {
             var retVal = new List<T>();
-            FillCollection(dr, closeConnection, retVal);
+            FillCollection<T>(dr, closeConnection, retVal);
             return retVal;
         }
 
