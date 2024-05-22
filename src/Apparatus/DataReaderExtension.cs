@@ -81,7 +81,7 @@ namespace Apparatus
         public static List<T> FillCollection<T>(this IDataReader dr) where T : IHydrator, new()
         {
             var retVal = new List<T>();
-            FillCollection<T>(dr, true, retVal);
+            FillCollection(dr, true, retVal);
             return retVal;
         }
 
@@ -105,7 +105,7 @@ namespace Apparatus
             where T : IHydrator, new()
         {
             var retVal = new List<T>();
-            FillCollection<T>(dr, closeConnection, retVal);
+            FillCollection(dr, closeConnection, retVal);
             return retVal;
         }
 
@@ -116,8 +116,8 @@ namespace Apparatus
         public static void FillCollection<T>(this IDataReader dr, bool closeConnection, IList listToFill)
             where T : IHydrator, new()
         {
-            var obj = new T();
-            obj.FillCollection(dr, closeConnection, listToFill);
+            var hydrator = new T();
+            hydrator.FillCollection(dr, closeConnection, listToFill);
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace Apparatus
         {
             if (dr.Read())
             {
-                if (src == null) src = new T();
+                src ??= new T();
                 src.FillObject(dr, false, false);
             }
 
@@ -186,9 +186,9 @@ namespace Apparatus
         {
             if (dr.Read())
             {
-                var retVal = new T();
-                retVal.FillObject(dr, closeConnection, false);
-                return retVal;
+                var hydrator = new T();
+                hydrator.FillObject(dr, closeConnection, false);
+                return hydrator;
             }
 
             return default;
@@ -220,9 +220,9 @@ namespace Apparatus
                 if (dr.Read() == false) return default;
             }
 
-            var retVal = new T();
-            retVal.FillObject(dr, closeConnection, false);
-            return retVal;
+            var hydrator = new T();
+            hydrator.FillObject(dr, closeConnection, false);
+            return hydrator;
         }
 
         /// <summary>
