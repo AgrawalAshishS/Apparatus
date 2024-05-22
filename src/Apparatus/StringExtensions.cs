@@ -231,7 +231,8 @@ namespace Apparatus
         [DebuggerStepThrough]
         public static string ToPascalCase(this string src)
         {
-            var convertedName = new StringBuilder();
+            Span<char> convertedName = stackalloc char[src.Length];
+            int index = 0;
             bool next2upper = true;
             bool allUpper = true;
             bool preserveUnderscores = false;
@@ -240,7 +241,7 @@ namespace Apparatus
             // checks for names in all CAPS
             foreach (char c in src)
             {
-                if (Char.IsLower(c))
+                if (char.IsLower(c))
                 {
                     allUpper = false;
                     break;
@@ -249,32 +250,32 @@ namespace Apparatus
 
             foreach (char c in src)
             {
-                if (Char.IsLetterOrDigit(c))
+                if (char.IsLetterOrDigit(c))
                 {
                     if (!useRawNames)
                     {
                         if (next2upper)
                         {
-                            convertedName.Append(char.ToUpper(c));
+                            convertedName[index++] = char.ToUpper(c);
                             next2upper = false;
                         }
                         else if (allUpper)
                         {
-                            convertedName.Append(char.ToLower(c));
+                            convertedName[index++] = char.ToLower(c);
                         }
                         else
                         {
-                            convertedName.Append(c);
+                            convertedName[index++] = c;
                         }
                     }
                     else
                     {
-                        convertedName.Append(c);
+                        convertedName[index++] = c;
                     }
                 }
                 else if (c == '_' && (preserveUnderscores || useRawNames))
                 {
-                    convertedName.Append(c);
+                    convertedName[index++] = c;
                     next2upper = true;
                 }
                 else
@@ -283,12 +284,12 @@ namespace Apparatus
                 }
             }
 
-            if (Char.IsDigit(convertedName[0]))
+            if (char.IsDigit(convertedName[0]))
             {
-                convertedName.Insert(0, "_");
+                convertedName = "_".AsSpan().Concat(convertedName.Slice(0, index)).ToArray();
             }
 
-            return convertedName.ToString();
+            return new string(convertedName.Slice(0, index));
         }
 
 
@@ -311,8 +312,11 @@ namespace Apparatus
             }
 
             src = src.ToPascalCase();
+            Span<char> result = stackalloc char[src.Length];
+            result[0] = useCurrentCulture ? char.ToLower(src[0]) : char.ToLowerInvariant(src[0]);
+            src.AsSpan(1).CopyTo(result.Slice(1));
 
-            return (useCurrentCulture ? char.ToLower(src[0]) : char.ToLowerInvariant(src[0])) + src.Substring(1);
+            return new string(result);
         }
 
         /// <summary>
@@ -329,10 +333,23 @@ namespace Apparatus
             }
 
             src = src.ToCamelCase();
+            Span<char> result = stackalloc char[src.Length * 2];
+            int index = 0;
 
-            return useCurrentCulture
-                ? Regex.Replace(src, "[a-z][A-Z]", m => m.Value[0] + "-" + char.ToLower(m.Value[1]))
-                : Regex.Replace(src, "[a-z][A-Z]", m => m.Value[0] + "-" + char.ToLowerInvariant(m.Value[1]));
+            for (int i = 0; i < src.Length; i++)
+            {
+                if (i > 0 && char.IsUpper(src[i]))
+                {
+                    result[index++] = '-';
+                    result[index++] = useCurrentCulture ? char.ToLower(src[i]) : char.ToLowerInvariant(src[i]);
+                }
+                else
+                {
+                    result[index++] = src[i];
+                }
+            }
+
+            return new string(result.Slice(0, index));
         }
 
         /// <summary>
@@ -348,7 +365,8 @@ namespace Apparatus
                 return src;
             }
 
-            var builder = new StringBuilder(src.Length + Math.Min(2, src.Length / 5));
+            Span<char> result = stackalloc char[src.Length * 2];
+            int index = 0;
             var previousCategory = default(UnicodeCategory?);
 
             for (var currentIndex = 0; currentIndex < src.Length; currentIndex++)
@@ -356,7 +374,7 @@ namespace Apparatus
                 var currentChar = src[currentIndex];
                 if (currentChar == '_')
                 {
-                    builder.Append('_');
+                    result[index++] = '_';
                     previousCategory = null;
                     continue;
                 }
@@ -374,7 +392,7 @@ namespace Apparatus
                             currentIndex + 1 < src.Length &&
                             char.IsLower(src[currentIndex + 1]))
                         {
-                            builder.Append('_');
+                            result[index++] = '_';
                         }
 
                         currentChar = char.ToLower(currentChar);
@@ -384,7 +402,7 @@ namespace Apparatus
                     case UnicodeCategory.DecimalDigitNumber:
                         if (previousCategory == UnicodeCategory.SpaceSeparator)
                         {
-                            builder.Append('_');
+                            result[index++] = '_';
                         }
                         break;
 
@@ -396,11 +414,11 @@ namespace Apparatus
                         continue;
                 }
 
-                builder.Append(currentChar);
+                result[index++] = currentChar;
                 previousCategory = currentCategory;
             }
 
-            return builder.ToString();
+            return new string(result.Slice(0, index));
         }
 
         #endregion
@@ -559,8 +577,11 @@ namespace Apparatus
         [DebuggerStepThrough]
         public static string Reverse([NotNull] this string src)
         {
-            char[] charArray = src.ToCharArray();
-            Array.Reverse(charArray);
+            Span<char> charArray = stackalloc char[src.Length];
+            for (int i = 0; i < src.Length; i++)
+            {
+                charArray[i] = src[src.Length - 1 - i];
+            }
             return new string(charArray);
         }
 
