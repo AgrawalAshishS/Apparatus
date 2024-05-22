@@ -47,10 +47,10 @@ namespace Apparatus
         /// </example>
         public static int IndexOfAny(this string src, params string[] values)
         {
-            string pattern = string.Join("|", values.Select(w => Regex.Escape(w)));
-            var m = Regex.Match(src, pattern);
-            if (!m.Success) return -1;
-            return m.Index;
+            string pattern = string.Join("|", values);
+            var regex = new Regex(pattern, RegexOptions.Compiled);
+            var match = regex.Match(src);
+            return match.Success ? match.Index : -1;
         }
 
         /// <summary>
@@ -68,11 +68,10 @@ namespace Apparatus
         /// </returns>
         public static Tuple<int, string> FindFirstIndexOfAny(this string src, params string[] values)
         {
-            string pattern = string.Join("|", values.Select(w => Regex.Escape(w)));
-            var m = Regex.Match(src, pattern);
-            if (!m.Success) return new Tuple<int, string>(-1, string.Empty);
-
-            return new Tuple<int, string>(m.Index, m.Value);
+            string pattern = string.Join("|", values);
+            var regex = new Regex(pattern, RegexOptions.Compiled);
+            var match = regex.Match(src);
+            return match.Success ? new Tuple<int, string>(match.Index, match.Value) : new Tuple<int, string>(-1, string.Empty);
         }
 
         /// <summary>
@@ -232,7 +231,7 @@ namespace Apparatus
         [DebuggerStepThrough]
         public static string ToPascalCase(this string src)
         {
-            string convertedName = String.Empty;
+            var convertedName = new StringBuilder();
             bool next2upper = true;
             bool allUpper = true;
             bool preserveUnderscores = false;
@@ -256,26 +255,26 @@ namespace Apparatus
                     {
                         if (next2upper)
                         {
-                            convertedName += c.ToString().ToUpper();
+                            convertedName.Append(char.ToUpper(c));
                             next2upper = false;
                         }
                         else if (allUpper)
                         {
-                            convertedName += c.ToString().ToLower();
+                            convertedName.Append(char.ToLower(c));
                         }
                         else
                         {
-                            convertedName += c;
+                            convertedName.Append(c);
                         }
                     }
                     else
                     {
-                        convertedName += c;
+                        convertedName.Append(c);
                     }
                 }
                 else if (c == '_' && (preserveUnderscores || useRawNames))
                 {
-                    convertedName += c;
+                    convertedName.Append(c);
                     next2upper = true;
                 }
                 else
@@ -286,10 +285,10 @@ namespace Apparatus
 
             if (Char.IsDigit(convertedName[0]))
             {
-                convertedName = convertedName.Insert(0, "_");
+                convertedName.Insert(0, "_");
             }
 
-            return convertedName;
+            return convertedName.ToString();
         }
 
 
@@ -587,21 +586,18 @@ namespace Apparatus
         {
             if (src == null)
                 return null;
-            byte[] binary = Encoding.UTF8.GetBytes(src);
-            byte[] compressed;
+            if (src == null)
+                return null;
 
-            using (MemoryStream ms = new MemoryStream())
+            var binary = Encoding.UTF8.GetBytes(src);
+            using var ms = new MemoryStream();
+            using (var zip = new GZipStream(ms, CompressionMode.Compress))
             {
-                using (GZipStream zip = new GZipStream(ms, CompressionMode.Compress))
-                {
-                    zip.Write(binary, 0, binary.Length);
-                }
-
-                compressed = ms.ToArray();
+                zip.Write(binary, 0, binary.Length);
             }
 
-            byte[] compressedWithLength = new byte[compressed.Length + 4];
-
+            var compressed = ms.ToArray();
+            var compressedWithLength = new byte[compressed.Length + 4];
             Buffer.BlockCopy(compressed, 0, compressedWithLength, 4, compressed.Length);
             Buffer.BlockCopy(BitConverter.GetBytes(binary.Length), 0, compressedWithLength, 0, 4);
 
@@ -614,22 +610,19 @@ namespace Apparatus
             if (src == null)
                 return null;
 
-            byte[] compressed = Convert.FromBase64String(src);
-            byte[] binary;
+            if (src == null)
+                return null;
 
-            using (MemoryStream ms = new MemoryStream())
+            var compressed = Convert.FromBase64String(src);
+            using var ms = new MemoryStream();
+            var length = BitConverter.ToInt32(compressed, 0);
+            ms.Write(compressed, 4, compressed.Length - 4);
+
+            var binary = new byte[length];
+            ms.Seek(0, SeekOrigin.Begin);
+            using (var zip = new GZipStream(ms, CompressionMode.Decompress))
             {
-                int length = BitConverter.ToInt32(compressed, 0);
-                ms.Write(compressed, 4, compressed.Length - 4);
-
-                binary = new byte[length];
-
-                ms.Seek(0, SeekOrigin.Begin);
-
-                using (GZipStream zip = new GZipStream(ms, CompressionMode.Decompress))
-                {
-                    zip.Read(binary, 0, binary.Length);
-                }
+                zip.Read(binary, 0, binary.Length);
             }
 
             return Encoding.UTF8.GetString(binary);
