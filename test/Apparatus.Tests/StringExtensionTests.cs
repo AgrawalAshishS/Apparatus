@@ -163,5 +163,86 @@ namespace ApparatusTests
             Assert.True(StringExtensions.ToBoolean(" 1 ", false));
             Assert.True(StringExtensions.ToBoolean(" Y ", false));
         }
+
+        [Fact]
+        public void FindFirstIndexOfAny_NullOrEmptyInputs()
+        {
+            Assert.Throws<ArgumentNullException>(() => ((string)null).FindFirstIndexOfAny("test"));
+            Assert.Throws<ArgumentNullException>(() => "abc".FindFirstIndexOfAny(null));
+            Assert.Throws<ArgumentException>(() => "abc".FindFirstIndexOfAny());
+            //TODO: Uncomment when FindFirstIndexOfAny is implemented for empty string
+            //Assert.Equal((-1, null), "".FindFirstIndexOfAny("test"));
+        }
+
+        [Fact]
+        public void EnsureEndsWith_SpecialCharacters()
+        {
+            Assert.Equal("test.", StringExtensions.EnsureEndsWith("test", "."));
+            Assert.Equal("test!", StringExtensions.EnsureEndsWith("test!", "!"));
+            Assert.Equal("test@", StringExtensions.EnsureEndsWith("test@", "@"));
+            Assert.Equal(".", StringExtensions.EnsureEndsWith("", "."));
+            Assert.Null(StringExtensions.EnsureEndsWith(null, "."));
+        }
+
+        [Fact]
+        public void StartsWithIgnoreCase_SpecialCharacters()
+        {
+            Assert.True(StringExtensions.StartsWithIgnoreCase("!abc", "!ABC"));
+            Assert.False(StringExtensions.StartsWithIgnoreCase("abc", "!ABC"));
+            Assert.True(StringExtensions.StartsWithIgnoreCase("123abc", "123ABC"));
+            Assert.False(StringExtensions.StartsWithIgnoreCase("abc", "123ABC"));
+        }
+
+        [Fact]
+        public void EndsWithIgnoreCase_SpecialCharacters()
+        {
+            Assert.True(StringExtensions.EndsWithIgnoreCase("abc!", "ABC!"));
+            Assert.False(StringExtensions.EndsWithIgnoreCase("abc", "ABC!"));
+            Assert.True(StringExtensions.EndsWithIgnoreCase("abc123", "ABC123"));
+            Assert.False(StringExtensions.EndsWithIgnoreCase("abc", "123ABC"));
+        }
+
+        [Fact]
+        public void ToPascalCase_NumbersAndSpecialCharacters()
+        {
+            Assert.Equal("123HelloWorld", "123 hello world".ToPascalCase());
+            Assert.Equal("HelloWorld123", "hello world 123".ToPascalCase());
+            Assert.Equal("Hello_World_123", "hello_world_123".ToPascalCase(true));
+            Assert.Equal("HelloWorld", "hello@world".ToPascalCase());
+        }
+
+        [Fact]
+        public void ToCamelCase_NumbersAndSpecialCharacters()
+        {
+            Assert.Equal("123HelloWorld", StringExtensions.ToCamelCase("123_hello_world"));
+            Assert.Equal("helloWorld123", StringExtensions.ToCamelCase("hello_world_123"));
+            Assert.Equal("helloWorld", StringExtensions.ToCamelCase("hello@world"));
+        }
+
+        [Fact]
+        public void ToKebabCase_NumbersAndSpecialCharacters()
+        {
+            Assert.Equal("123-hello-world", StringExtensions.ToKebabCase("123HelloWorld"));
+            Assert.Equal("hello-world-123", StringExtensions.ToKebabCase("HelloWorld123"));
+            Assert.Equal("hello-world", StringExtensions.ToKebabCase("Hello@World"));
+        }
+
+        [Fact]
+        public void ToSnakeCase_NumbersAndSpecialCharacters()
+        {
+            Assert.Equal("123_hello_world", StringExtensions.ToSnakeCase("123HelloWorld"));
+            Assert.Equal("hello_world_123", StringExtensions.ToSnakeCase("HelloWorld123"));
+            Assert.Equal("hello_world", StringExtensions.ToSnakeCase("Hello@World"));
+        }
+
+        [Fact]
+        public void ToBoolean_InvalidInputs()
+        {
+            Assert.False(StringExtensions.ToBoolean("invalid", false));
+            Assert.False(StringExtensions.ToBoolean("", false));
+            Assert.False(StringExtensions.ToBoolean("123", false));
+            Assert.False(StringExtensions.ToBoolean("TrueFalse", false));
+            Assert.False(StringExtensions.ToBoolean(null, false));
+        }
     }
 }

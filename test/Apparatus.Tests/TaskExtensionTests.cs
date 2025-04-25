@@ -26,9 +26,9 @@ namespace ApparatusTests
         }
 
         [Fact]
-        public void TaskExceptionIsVisibleCorrectly()
+        public async Task TaskExceptionIsVisibleCorrectly()
         {
-            Assert.ThrowsAsync<MyException>(() => ErrorTestMethod());
+            await Assert.ThrowsAsync<MyException>(() => ErrorTestMethod());
 
             //Assert.That(() => .Await(),
             //    Throws.TypeOf<MyException>().With.Message.EqualTo("my test")

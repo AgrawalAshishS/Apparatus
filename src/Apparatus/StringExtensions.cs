@@ -29,6 +29,7 @@ namespace Apparatus
     using System;
 
     using System.Text.RegularExpressions;
+    using System.ComponentModel;
 
     /// <summary>
     /// Extensions for string.
@@ -69,6 +70,11 @@ namespace Apparatus
         /// </returns>
         public static Tuple<int, string> FindFirstIndexOfAny(this string src, params string[] values)
         {
+            if (values == null) throw new ArgumentNullException(nameof(values), "Values cannot be null.");
+            if (values.Length == 0) throw new ArgumentException("Values cannot be empty.", nameof(values));
+            ArgumentException.ThrowIfNullOrEmpty(src, "Source cannot be null or empty.");
+
+
             string pattern = string.Join("|", values);
             var regex = new Regex(pattern, RegexOptions.Compiled);
             var match = regex.Match(src);
@@ -232,10 +238,10 @@ namespace Apparatus
         /// <param name="useRawNames"></param>
         /// <returns>New updated string.</returns>
         [DebuggerStepThrough]
-        public static string ToPascalCase(this string src, bool preserveUnderscores = false, bool useRawNames = false)
+        public static string ToPascalCase(this string src, bool preserveUnderscores = false, bool useRawNames = false, bool handleDigitStart = false)
         {
-            if(string.IsNullOrWhiteSpace(src)) return src;
-            
+            if (string.IsNullOrWhiteSpace(src)) return src;
+
             Span<char> convertedName = stackalloc char[src.Length];
             int index = 0;
             bool next2upper = true;
@@ -287,7 +293,7 @@ namespace Apparatus
                 }
             }
 
-            if (char.IsDigit(convertedName[0]))
+            if ( handleDigitStart && char.IsDigit(convertedName[0]))
             {
                 convertedName = "_".AsSpan().Concat(convertedName.Slice(0, index)).ToArray();
             }
@@ -533,6 +539,11 @@ namespace Apparatus
             return Regex.Replace(Regex.Replace(src, @"(\P{Ll})(\P{Ll}\p{Ll})", "$1 $2"), @"(\p{Ll})(\P{Ll})", "$1 $2");
         }
 
+        /// <summary>
+        /// Splits a PascalCase string into separate words.
+        /// </summary>
+        /// <param name="value">The PascalCase string to split.</param>
+        /// <returns>A string with words separated by spaces.</returns>
         public static string SplitPascalCase(this string value)
         {
             return PascalExpression.Replace(value, " $1").Trim();
