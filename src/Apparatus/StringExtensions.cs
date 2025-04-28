@@ -293,7 +293,7 @@ namespace Apparatus
                 }
             }
 
-            if ( handleDigitStart && char.IsDigit(convertedName[0]))
+            if (handleDigitStart && char.IsDigit(convertedName[0]))
             {
                 convertedName = "_".AsSpan().Concat(convertedName.Slice(0, index)).ToArray();
             }
@@ -337,30 +337,26 @@ namespace Apparatus
         [DebuggerStepThrough]
         public static string ToKebabCase(this string src, bool useCurrentCulture = false)
         {
-            if (string.IsNullOrWhiteSpace(src))
-            {
+            if (string.IsNullOrEmpty(src))
                 return src;
-            }
 
-            src = src.ToCamelCase();
-            Span<char> result = stackalloc char[src.Length * 2];
-            int index = 0;
+            RegexOptions options = useCurrentCulture ? RegexOptions.None : RegexOptions.CultureInvariant;
+            options = options | RegexOptions.Compiled;
 
-            for (int i = 0; i < src.Length; i++)
-            {
-                if (i > 0 && char.IsUpper(src[i]))
-                {
-                    result[index++] = '-';
-                    result[index++] = useCurrentCulture ? char.ToLower(src[i]) : char.ToLowerInvariant(src[i]);
-                }
-                else
-                {
-                    result[index++] = src[i];
-                }
-            }
+            // Replace underscores with dashes
+            src = src.Replace("_", "-");
 
-            return new string(result.Slice(0, index));
+            // Replace uppercase letters with a dash followed by the lowercase letter
+            var kebabCase = Regex.Replace(src, "([a-z0-9])([A-Z])", "$1-$2", options);
+
+            // Handle numbers and special cases
+            kebabCase = Regex.Replace(kebabCase, "([A-Z])([0-9])", "$1-$2", options);
+            kebabCase = Regex.Replace(kebabCase, "([0-9])([A-Z])", "$1-$2", options);
+
+            // Convert to lowercase
+            return kebabCase.ToLower();
         }
+
 
         /// <summary>
         /// Convert VeryLongName to very_long_name. It lower case returned string.
