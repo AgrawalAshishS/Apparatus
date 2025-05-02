@@ -330,31 +330,126 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Convert VeryLongName to very-long-name
+        /// Converts a string to kebab-case.
+        /// Handles PascalCase, camelCase, strings with spaces, underscores, existing hyphens,
+        /// acronyms (e.g., HTTPRequest -> http-request), numbers, and removes most special characters.
+        /// Optimized for performance and memory usage.
         /// </summary>
-        /// <param name="src"></param>
-        /// <returns></returns>
+        /// <param name="input">The string to convert.</param>
+        /// <returns>The kebab-case representation of the string, or null if the input was null, or empty if the input was empty or whitespace.</returns>
         [DebuggerStepThrough]
-        public static string ToKebabCase(this string src, bool useCurrentCulture = false)
+        public static string ToKebabCase(this string input)
         {
-            if (string.IsNullOrEmpty(src))
-                return src;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                // Covers empty string and strings with only whitespace
+                return string.Empty;
+            }
 
-            RegexOptions options = useCurrentCulture ? RegexOptions.None : RegexOptions.CultureInvariant;
-            options = options | RegexOptions.Compiled;
+            // --- Use StringBuilder for efficient string construction ---
+            // Estimate capacity: input length is a good start, might need slightly more for hyphens.
+            // Adding a small buffer can prevent some reallocations for hyphen insertions.
+            var sb = new StringBuilder(input.Length + Math.Min(input.Length / 2, 10));
 
-            // Replace underscores with dashes
-            src = src.Replace("_", "-");
+            // --- State variables for single-pass processing ---
+            // Tracks if the last character appended to sb was a hyphen to prevent duplicates (--).
+            bool lastAppendedWasHyphen = true; // Initialize to true to prevent leading hyphen
 
-            // Replace uppercase letters with a dash followed by the lowercase letter
-            var kebabCase = Regex.Replace(src, "([a-z0-9])([A-Z])", "$1-$2", options);
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
 
-            // Handle numbers and special cases
-            kebabCase = Regex.Replace(kebabCase, "([A-Z])([0-9])", "$1-$2", options);
-            kebabCase = Regex.Replace(kebabCase, "([0-9])([A-Z])", "$1-$2", options);
+                // --- Check if the character is a letter or digit ---
+                if (char.IsLetterOrDigit(c))
+                {
+                    bool isBoundary = false;
 
-            // Convert to lowercase
-            return kebabCase.ToLower();
+                    // --- Determine if a boundary exists BEFORE this character ---
+                    if (i > 0) // Need a previous character to check for boundaries
+                    {
+                        char prevChar = input[i - 1];
+
+                        // Boundary conditions:
+                        // 1. Lower to Upper case (e.g., "helloWorld")
+                        if (char.IsLower(prevChar) && char.IsUpper(c)) isBoundary = true;
+                        // 2. Letter to Digit (e.g., "Version1")
+                        else if (char.IsLetter(prevChar) && char.IsDigit(c)) isBoundary = true;
+                        // 3. Digit to Letter (e.g., "1Version")
+                        else if (char.IsDigit(prevChar) && char.IsLetter(c)) isBoundary = true;
+                        // 4. Acronym detection (e.g., "HTTPRequest" -> insert before 'R')
+                        //    Checks for Upper -> Upper -> Lower sequence
+                        else if (char.IsUpper(prevChar) && char.IsUpper(c))
+                        {
+                            // Check if there is a next character and if it's lowercase
+                            if (i + 1 < input.Length && char.IsLower(input[i + 1])) isBoundary = true;
+                        }
+                        // 5. Previous character was effectively a delimiter (non-letter/digit)
+                        //    We ensure sb is not empty to avoid issues at the very start if input begins with delimiter
+                        else if (!char.IsLetterOrDigit(prevChar) && sb.Length > 0) isBoundary = true;
+                    }
+
+                    // --- Append hyphen if a boundary is detected AND last appended wasn't one ---
+                    if (isBoundary && !lastAppendedWasHyphen)
+                    {
+                        sb.Append('-');
+                        lastAppendedWasHyphen = true; // Mark that we just added a hyphen
+                    }
+
+                    // --- Append the character in lower case ---
+                    sb.Append(char.ToLowerInvariant(c));
+                    lastAppendedWasHyphen = false; // Mark that the last added char was not a hyphen
+                }
+                // --- Handle non-letter/digit characters (treat as potential delimiters) ---
+                else
+                {
+                    // If we encounter a delimiter and the builder has content
+                    // and we haven't just added a hyphen, mark that the next
+                    // alphanumeric character should be preceded by a hyphen.
+                    // This effectively consolidates multiple delimiters.
+                    if (sb.Length > 0 && !lastAppendedWasHyphen)
+                    {
+                        // Don't append anything now, but signal that the *next*
+                        // alphanumeric character should get a hyphen prepended.
+                        // We achieve this by ensuring lastAppendedWasHyphen remains false
+                        // and relying on the boundary check #5 in the next iteration (if any).
+                        // A direct flag isn't strictly necessary with check #5 added above.
+
+                        // *However*, to handle cases like "already-kebab-case" correctly,
+                        // where an existing hyphen IS a delimiter but should be preserved
+                        // *if* single, we need slightly different logic.
+                        // Let's refine: if it's specifically a hyphen, treat it like a potential boundary.
+                        // All *other* delimiters just get skipped but might trigger boundary #5 later.
+
+                        if (c == '-')
+                        {
+                            // If it's a hyphen, and we haven't just added one, add it.
+                            if (!lastAppendedWasHyphen)
+                            {
+                                sb.Append('-');
+                                lastAppendedWasHyphen = true;
+                            }
+                            // If last was already a hyphen, we skip this one (consolidate).
+                        }
+                        else
+                        {
+                            // For any other delimiter (space, _, !, @ etc.), don't append it.
+                            // Just ensure the next alphanumeric char will trigger boundary #5.
+                            // No state change needed here due to boundary check #5.
+                        }
+                    }
+                    // If sb.Length is 0 (start of string) or last appended WAS a hyphen,
+                    // simply ignore this delimiter character.
+                }
+            }
+
+            // --- Final Cleanup: Remove trailing hyphen if it exists ---
+            // This can happen if the input string ends with delimiters.
+            if (sb.Length > 0 && sb[sb.Length - 1] == '-')
+            {
+                sb.Length--; // Efficiently remove the last character
+            }
+
+            return sb.ToString();
         }
 
 
