@@ -17,36 +17,36 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-/// <summary>
-/// NuGet Package: Apparatus
-/// </summary>
+// NuGet Package: Apparatus
 namespace Apparatus
 {
     using System.Collections;
     using System.Data;
 
     /// <summary>
-    /// Common shorthand methods to make IDataReader code easy.
+    /// Short helpers for <see cref="System.Data.IDataReader"/>: loop over rows, move between result sets,
+    /// close the reader without try/catch, and fill objects that implement <see cref="IHydrator"/>.
     /// </summary>
     public static class DataReaderExtension
     {
         /// <summary>
-        /// Provide very fluent way to fill multiple collections / objects with chain of FillCollection, FillObject and NextResultSafely.
-        /// 
-        /// Example
-        /// @code
-        /// Tasks task;
-        /// List<Comments> comments;
-        /// cmd.ExecuteDataReader()
-        ///     .FillObject<Task>(task)
-        ///     .NextResultSafely()
-        ///     .FillCollection<Comments>(comments);
-        /// @endcode
+        /// Fills an existing list from the reader and returns the reader, so you can chain more calls
+        /// (for example <see cref="NextResultSafely(IDataReader)"/>) to read several result sets. The reader stays open.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dr"></param>
-        /// <param name="listToFill"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="listToFill">The list that receives the new objects.</param>
+        /// <returns>The same <paramref name="dr"/>, for chaining.</returns>
+        /// <example>
+        /// <code>
+        /// var tasks = new List&lt;TaskItem&gt;();
+        /// var comments = new List&lt;Comment&gt;();
+        /// cmd.ExecuteReader()
+        ///     .FillCollection&lt;TaskItem&gt;(tasks)
+        ///     .NextResultSafely()
+        ///     .FillCollection&lt;Comment&gt;(comments);
+        /// </code>
+        /// </example>
         public static IDataReader FillCollection<T>(this IDataReader dr, IList listToFill) where T : IHydrator, new()
         {
             FillCollection<T>(dr, false, listToFill);
@@ -54,30 +54,17 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Takes IDataReader and provide shorthand to call FillCollection based on <see cref="IHydrator"/>.
-        /// Code before this extension
-        /// @code
-        /// var dr = cmd.ExecuteReader();
-        /// var dataList = MyType.FillCollection(dr);
-        /// @endcode
-        /// 
-        /// After
-        /// @code
-        /// var dataList = cmd.ExecuteReader().FillCollection<MyType>();
-        /// @endcode
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Reads all rows of the reader into a new list of <typeparamref name="T"/>, and asks the type to close the reader.
         /// </summary>
-        /// <param name="dr">
-        /// Expect open data reader.
-        /// </param>
-        /// <typeparam name="T">
-        /// Type that implements <see cref="IHydrator"/>.
-        /// </typeparam>
-        /// <returns>
-        /// List filled with objects of given type.
-        /// </returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <returns>A new list with one object per row.</returns>
+        /// <remarks>The reader is closed afterwards (the <see cref="IHydrator"/> implementation must do it).</remarks>
+        /// <example>
+        /// <code>
+        /// List&lt;Customer&gt; customers = cmd.ExecuteReader().FillCollection&lt;Customer&gt;();
+        /// </code>
+        /// </example>
         public static List<T> FillCollection<T>(this IDataReader dr) where T : IHydrator, new()
         {
             var retVal = new List<T>();
@@ -86,21 +73,17 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Takes IDataReader and provide shorthand to call FillCollection based on <see cref="IHydrator"/>.
-        /// For example see <see cref="FillCollection{T}(IDataReader)"/>.
+        /// Reads all rows of the reader into a new list of <typeparamref name="T"/>, and lets you choose whether the reader is closed.
         /// </summary>
-        /// <param name="dr">
-        /// Expect open data reader.
-        /// </param>
-        /// <param name="closeConnection">
-        /// If true, after filling collection DataReader will be closed.
-        /// </param>
-        /// <typeparam name="T">
-        /// Type that implements <see cref="IHydrator"/>.
-        /// </typeparam>
-        /// <returns>
-        /// List filled with objects of given type.
-        /// </returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="closeConnection"><c>true</c> to close the reader after filling; <c>false</c> to keep it open.</param>
+        /// <returns>A new list with one object per row.</returns>
+        /// <example>
+        /// <code>
+        /// List&lt;Customer&gt; customers = cmd.ExecuteReader().FillCollection&lt;Customer&gt;(false);
+        /// </code>
+        /// </example>
         public static List<T> FillCollection<T>(this IDataReader dr, bool closeConnection)
             where T : IHydrator, new()
         {
@@ -109,10 +92,19 @@ namespace Apparatus
             return retVal;
         }
 
-        /// \copydoc FillCollection<T>(IDataReader,bool)
-        /// <param name="listToFill">
-        /// Existing list to append into.
-        /// </param>
+        /// <summary>
+        /// Reads all rows of the reader and adds the new objects to a list you already have.
+        /// </summary>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="closeConnection"><c>true</c> to close the reader after filling; <c>false</c> to keep it open.</param>
+        /// <param name="listToFill">The list that receives the new objects.</param>
+        /// <example>
+        /// <code>
+        /// var customers = new List&lt;Customer&gt;();
+        /// cmd.ExecuteReader().FillCollection&lt;Customer&gt;(true, customers);
+        /// </code>
+        /// </example>
         public static void FillCollection<T>(this IDataReader dr, bool closeConnection, IList listToFill)
             where T : IHydrator, new()
         {
@@ -121,16 +113,27 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Provide very fluent way to fill multiple collections / objects with chain of FillCollection, FillObject and NextResultSafely
-        /// 
-        /// <span class="attention" style="color:red">This method will do DataReader.Read() for fluent support.</span>
-        /// 
-        /// For example <see cref="FillCollection<T>(this IDataReader, IList)"/>
+        /// Moves the reader to the next row (calls <c>Read()</c>) and, if there is a row, fills <paramref name="src"/> from it.
+        /// Returns the reader so you can chain calls. The reader stays open.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dr"></param>
-        /// <param name="src"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="src">The object to fill. Pass an existing object.</param>
+        /// <returns>The same <paramref name="dr"/>, for chaining.</returns>
+        /// <remarks>
+        /// Known issue: when <paramref name="src"/> is <c>null</c>, a new object is created inside the method but the caller never receives it.
+        /// Always pass an existing object.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var task = new TaskItem();
+        /// var comments = new List&lt;Comment&gt;();
+        /// cmd.ExecuteReader()
+        ///     .FillObject(task)
+        ///     .NextResultSafely()
+        ///     .FillCollection&lt;Comment&gt;(comments);
+        /// </code>
+        /// </example>
         public static IDataReader FillObject<T>([NotNull] this IDataReader dr, T src) where T : IHydrator, new()
         {
             if (dr.Read())
@@ -143,45 +146,33 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// The fill object based on current record that DataReader points to.
-        /// Note: this method <b>does not call</b> DataReader.Read(), so please ensure you have performed DataReader.Read() before calling.
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Reads the next row (calls <c>Read()</c>) into a new object of type <typeparamref name="T"/> and asks the type to close the reader.
         /// </summary>
-        /// <param name="dr">
-        /// Object of IDataReader.
-        /// </param>
-        /// <typeparam name="T">
-        /// Type that implement <see cref="IHydrator"/>
-        /// </typeparam>
-        /// <returns>
-        /// New object with data filled from DataReader.
-        /// </returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <returns>A new object filled from the row, or <c>null</c> when there is no row.</returns>
+        /// <example>
+        /// <code>
+        /// Customer? customer = cmd.ExecuteReader().FillObject&lt;Customer&gt;();
+        /// </code>
+        /// </example>
         public static T? FillObject<T>(this IDataReader dr) where T : IHydrator, new()
         {
             return FillObject<T>(dr, true);
         }
 
         /// <summary>
-        /// The fill object based on current record that DataReader points to.
-        /// Note: this method <b>does not call</b> DataReader.Read(), so please ensure you have performed DataReader.Read() before calling.
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Reads the next row (calls <c>Read()</c>) into a new object of type <typeparamref name="T"/>, and lets you choose whether the reader is closed.
         /// </summary>
-        /// <param name="dr">
-        /// Object of IDataReader.
-        /// </param>
-        /// <param name="closeConnection">
-        /// 
-        /// </param>
-        /// <typeparam name="T">
-        /// Type that implement <see cref="IHydrator"/>
-        /// </typeparam>
-        /// <returns>
-        /// New object with data filled from DataReader.
-        /// </returns>
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="closeConnection"><c>true</c> to ask the type to close the reader; <c>false</c> to keep it open.</param>
+        /// <returns>A new object filled from the row, or <c>null</c> when there is no row.</returns>
+        /// <example>
+        /// <code>
+        /// Customer? customer = cmd.ExecuteReader().FillObject&lt;Customer&gt;(false);
+        /// </code>
+        /// </example>
         public static T? FillObject<T>([NotNull] this IDataReader dr, bool closeConnection) where T : IHydrator, new()
         {
             if (dr.Read())
@@ -195,24 +186,25 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// The fill object based on current record that DataReader points to.
-        /// Note: this method <b>does not call</b> DataReader.Read(), so please ensure you have performed DataReader.Read() before calling.
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Fills a new object from the current row, and lets you decide whether <c>Read()</c> is called first.
         /// </summary>
-        /// <param name="dr">
-        /// Object of IDataReader.
+        /// <typeparam name="T">A type that implements <see cref="IHydrator"/> and has a public parameterless constructor.</typeparam>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="closeConnection"><c>true</c> to ask the type to close the reader; <c>false</c> to keep it open.</param>
+        /// <param name="doDrRead">
+        /// <c>true</c> to call <c>Read()</c> first. <c>false</c> to use the row the reader is already on,
+        /// which is needed when several different types are built from the same row.
         /// </param>
-        /// <param name="closeConnection">
-        /// 
-        /// </param>
-        /// <typeparam name="T">
-        /// Type that implement <see cref="IHydrator"/>
-        /// </typeparam>
-        /// <returns>
-        /// New object with data filled from DataReader.
-        /// </returns>
+        /// <returns>A new object filled from the row, or <c>null</c> when <paramref name="doDrRead"/> is <c>true</c> and there is no row.</returns>
+        /// <example>
+        /// <code>
+        /// while (dr.Read())
+        /// {
+        ///     var customer = dr.FillObject&lt;Customer&gt;(false, false);
+        ///     var address = dr.FillObject&lt;Address&gt;(false, false);
+        /// }
+        /// </code>
+        /// </example>
         public static T? FillObject<T>([NotNull] this IDataReader dr, bool closeConnection, bool doDrRead) where T : IHydrator, new()
         {
             if (doDrRead)
@@ -226,79 +218,45 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// FillCollection and FillObject both need type to implement IHydrator.
-        /// There are many cases where its not possible specifically if type is provided by 3rd party.
-        /// 
-        /// In such cases you can shorthand like
-        /// @code
-        /// var list = new List<MyType>();
-        /// cmd.ExecuteReader().ForEachRecord( (dr) => {
-        ///     var obj = new MyType();
-        ///     obj.SomeProp = dr.GetInt32(0);
-        ///     obj.Other = dr.GetString(1);
-        ///     list.Add(obj);
-        /// });
-        /// @endcode
-        /// 
-        /// In contrast code before this extension
-        /// @code
-        /// var dr = cmd.ExecuteReader();
-        /// var list = new List<MyType>();
-        /// try
-        /// {
-        ///     while(dr.Read())
-        ///     {
-        ///         var obj = new MyType();
-        ///         obj.SomeProp = dr.GetInt32(0);
-        ///         obj.Other = dr.GetString(1);
-        ///         list.Add(obj);
-        ///     }
-        /// }
-        /// finally
-        /// {
-        ///     dr.CloseSafely();
-        /// }
-        /// @endcode
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Runs an action for every row of the reader, then closes the reader. Use it when the row type does not implement <see cref="IHydrator"/>.
         /// </summary>
-        /// <param name="dr"></param>
-        /// <param name="action">Probably a lambda method that takes one IDataReader parameter. (dr) => {};</param>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="action">Code to run for each row. It receives the reader positioned on that row.</param>
+        /// <remarks>The reader is closed afterwards, even if the action throws.</remarks>
+        /// <exception cref="Exception">Any exception thrown by <paramref name="action"/> is thrown again after the reader is closed.</exception>
+        /// <example>
+        /// <code>
+        /// var list = new List&lt;MyType&gt;();
+        /// cmd.ExecuteReader().ForEachRecord(dr =&gt;
+        /// {
+        ///     list.Add(new MyType { Id = dr.GetInt32(0), Name = dr.GetString(1) });
+        /// });
+        /// </code>
+        /// </example>
         public static void ForEachRecord(this IDataReader dr, Action<IDataReader> action)
         {
             ForEachRecord(dr, true, action);
         }
 
         /// <summary>
-        /// This overload of <see cref="ForEachRecord(this IDataReader, Action<IDataReader>)"/> is useful if you want to have
-        /// fluent chain of code. This works in same way as <see cref="ForEachRecord(this IDataReader, Action<IDataReader>)"/> with
-        /// difference is, this allows you to keep DataReader open. It returns same DataReader for further fluent calls.
-        /// 
-        /// Fluent example
-        /// @code
-        /// var tasks = new List<Tasks>();
-        /// var comments = new List<Comments>();
-        /// cmd.ExecuteReader().ForEachRecord( false, (dr) => {
-        ///         var obj = new Task();
-        ///         obj.TaskId = dr.GetInt32(0);
-        ///         obj.Title = dr.GetString(1);
-        ///         tasks.Add(obj);
-        ///     })
-        ///     .NextResultSafely()
-        ///     .ForEachRecord( false, (dr) => {
-        ///         var obj = new Comment();
-        ///         obj.CommentId = dr.GetInt32(0);
-        ///         obj.Comment = dr.GetString(1);
-        ///         comments.Add(obj);
-        ///     });
-        /// @endcode
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Runs an action for every row of the reader, and lets you choose whether the reader is closed.
+        /// Keep it open to read the next result set in the same chain.
         /// </summary>
-        /// <param name="dr"></param>
-        /// <param name="action">Probably a lambda method that takes one IDataReader parameter. (dr) => {};</param>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="closeConnection"><c>true</c> to close the reader after the last row; <c>false</c> to keep it open.</param>
+        /// <param name="action">Code to run for each row. It receives the reader positioned on that row.</param>
+        /// <returns>The same <paramref name="dr"/>, for chaining.</returns>
+        /// <remarks>If the action throws, the reader is closed and the exception is thrown again.</remarks>
+        /// <example>
+        /// <code>
+        /// var tasks = new List&lt;TaskItem&gt;();
+        /// var comments = new List&lt;Comment&gt;();
+        /// cmd.ExecuteReader()
+        ///     .ForEachRecord(false, dr =&gt; tasks.Add(new TaskItem { Id = dr.GetInt32(0) }))
+        ///     .NextResultSafely()
+        ///     .ForEachRecord(true, dr =&gt; comments.Add(new Comment { Id = dr.GetInt32(0) }));
+        /// </code>
+        /// </example>
         public static IDataReader ForEachRecord([NotNull] this IDataReader dr, bool closeConnection, [NotNull] Action<IDataReader> action)
         {
             try
@@ -332,44 +290,21 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Close reader within try catch block.
-        /// Code before extension.
-        /// @code
+        /// Closes the reader and ignores any error, so it is safe to call inside <c>finally</c>.
+        /// </summary>
+        /// <param name="dr">The reader to close. Already closed or disposed readers are fine.</param>
+        /// <example>
+        /// <code>
         /// try
         /// {
-        ///     while(dr.Read())
-        ///     {
-        ///         ......
-        ///     }
-        /// }
-        /// finally
-        /// {
-        ///     try
-        ///     {
-        ///         dr.Close();
-        ///     }
-        ///     catch
-        ///     {
-        ///     }
-        /// }
-        /// @endcode
-        /// 
-        /// Code after extension.
-        /// @code
-        /// try
-        /// {
-        ///     while(dr.Read())
-        ///     {
-        ///         ......
-        ///     }
+        ///     while (dr.Read()) { /* ... */ }
         /// }
         /// finally
         /// {
         ///     dr.CloseSafely();
         /// }
-        /// @endcode
-        /// </summary>
-        /// <param name="dr"></param>
+        /// </code>
+        /// </example>
         public static void CloseSafely(this IDataReader dr)
         {
             try
@@ -383,66 +318,17 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Move to next result set in DataReader, reduce try catch code.
-        /// Code before extension.
-        /// @code
-        /// try
-        /// {
-        ///     while(dr.Read())
-        ///     {
-        ///         ......
-        ///     }
-        ///     try
-        ///     {
-        ///         dr.NextResult();
-        ///         while(dr.Read())
-        ///         {
-        ///             ......
-        ///         }
-        ///     }
-        ///     catch
-        ///     {
-        ///     }
-        /// }
-        /// finally
-        /// {
-        ///     try
-        ///     {
-        ///         dr.Close();
-        ///     }
-        ///     catch
-        ///     {
-        ///     }
-        /// }
-        /// @endcode
-        /// 
-        /// Code after extension.
-        /// @code
-        /// try
-        /// {
-        ///     while(dr.Read())
-        ///     {
-        ///         ......
-        ///     }
-        ///     dr.NextResultSafely();
-        ///     while(dr.Read())
-        ///     {
-        ///         ......
-        ///     }
-        /// }
-        /// finally
-        /// {
-        ///     dr.CloseSafely();
-        /// }
-        /// @endcode
-        /// 
-        /// For fluent examples
-        /// + <see cref="FillCollection<T>(this IDataReader,IList)"/>
-        /// + <see cref="ForEachRecord(this IDataReader,bool,Action<IDataReader>)"/> 
-        /// 
+        /// Moves to the next result set of the reader and ignores any error, so you do not need a try/catch.
         /// </summary>
-        /// <param name="dr"></param>
-        /// <returns>Returns source DataReader for fluent calls.</returns>
+        /// <param name="dr">An open data reader.</param>
+        /// <returns>The same <paramref name="dr"/>, for chaining.</returns>
+        /// <example>
+        /// <code>
+        /// while (dr.Read()) { /* first result */ }
+        /// dr.NextResultSafely();
+        /// while (dr.Read()) { /* second result */ }
+        /// </code>
+        /// </example>
         public static IDataReader NextResultSafely([NotNull] this IDataReader dr)
         {
             try
@@ -456,14 +342,21 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Similar to ForEachRecord but takes array of Actions. Each action is related to result set.
-        /// Meaning it will call dr.NextResult() after each dr.Read() is false.
-        /// 
-        /// <span class="attention" style="color:red">This method will close database connection.</span>
-        /// 
+        /// Reads several result sets. The first action runs for every row of the first result set, the second action for the second result set, and so on.
+        /// The reader is disposed at the end.
         /// </summary>
-        /// <param name="dr"></param>
-        /// <param name="action"></param>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="action">One action per result set, in order.</param>
+        /// <remarks>
+        /// Known issue: calling this without any action fails with an <see cref="IndexOutOfRangeException"/> (or a <see cref="NullReferenceException"/> for <c>null</c>) instead of just closing the reader.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// cmd.ExecuteReader().ForEachResult(
+        ///     dr =&gt; tasks.Add(new TaskItem { Id = dr.GetInt32(0) }),
+        ///     dr =&gt; comments.Add(new Comment { Id = dr.GetInt32(0) }));
+        /// </code>
+        /// </example>
         public static void ForEachResult(this IDataReader dr, params Action<IDataReader>[] action)
         {
             using (dr)
@@ -483,12 +376,16 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Calls NoRecord function if there are no-record found in given DataReader.
-        /// It checks records by checking FieldCount rather than Read function, otherwise it might mess up other read operations.
+        /// Runs an action when the reader has no columns, which is how an empty result is detected without calling <c>Read()</c> (so other reading code is not disturbed).
         /// </summary>
-        /// <param name="dr"></param>
-        /// <param name="noRecordAction"></param>
-        /// <returns></returns>
+        /// <param name="dr">An open data reader.</param>
+        /// <param name="noRecordAction">Code to run when <c>FieldCount</c> is 0.</param>
+        /// <returns>The same <paramref name="dr"/>, for chaining.</returns>
+        /// <example>
+        /// <code>
+        /// cmd.ExecuteReader().NoRecord(() =&gt; Console.WriteLine("Nothing found"));
+        /// </code>
+        /// </example>
         public static System.Data.IDataReader NoRecord([NotNull] this System.Data.IDataReader dr, [NotNull] Action noRecordAction)
         {
             if (dr.FieldCount == 0) noRecordAction();

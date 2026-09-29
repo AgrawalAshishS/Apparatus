@@ -22,12 +22,38 @@ namespace Apparatus
     using System.Data;
 
     /// <summary>
-    /// Force implementing type to provide common methods for fill data using DataReader.
-    /// Example of expectation is shared.
+    /// A contract for types that know how to fill themselves from an <see cref="IDataReader"/>.
+    /// Implement it on your data classes, then use <see cref="DataReaderExtension"/> to fill one object or a whole list in a single call.
     /// </summary>
     /// <example>
     /// <code>
-    /// [!include[Examples/HydratorExample.txt](tag)]
+    /// public class Customer : IHydrator
+    /// {
+    ///     public int Id { get; set; }
+    ///     public string Name { get; set; } = "";
+    ///
+    ///     public void FillObject(IDataReader dr, bool manageDataReader, bool doDrRead)
+    ///     {
+    ///         if (doDrRead &amp;&amp; !dr.Read()) return;
+    ///         Id = dr.GetInt32(0);
+    ///         Name = dr.GetString(1);
+    ///         if (manageDataReader) dr.Close();
+    ///     }
+    ///
+    ///     public void FillCollection(IDataReader dr, bool manageDataReader, IList listToFill)
+    ///     {
+    ///         while (dr.Read())
+    ///         {
+    ///             var item = new Customer();
+    ///             item.FillObject(dr, false, false);
+    ///             listToFill.Add(item);
+    ///         }
+    ///         if (manageDataReader) dr.Close();
+    ///     }
+    /// }
+    ///
+    /// // usage
+    /// List&lt;Customer&gt; customers = cmd.ExecuteReader().FillCollection&lt;Customer&gt;();
     /// </code>
     /// </example>
     public interface IHydrator
