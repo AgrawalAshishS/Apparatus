@@ -161,3 +161,7 @@ nuget.exe
 _distribution/
 [Dd]ocument/
 .aider*
+
+# Build artifacts
+artifacts/
+TestResults/

@@ -26,18 +26,15 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: 8.0.x
     - name: Build
       run: |
-        cd src
-        dotnet build
+        dotnet build Apparatus.sln -c Release
     - name: Test
       run: |
-        cd src
-        dotnet test --no-build --verbosity normal
+        dotnet test Apparatus.sln -c Release --no-build --verbosity normal
     - name: publish
       run: |
-        cd src
-        dotnet pack --nologo --configuration Release --output ../.artifacts
-        cd ../.artifacts
+        dotnet pack src/Apparatus/Apparatus.csproj --nologo --configuration Release --output .artifacts
+        cd .artifacts
         dotnet nuget push -s "https://api.nuget.org/v3/index.json" -k ${{ secrets.NUGETAPIKEY }} *.nupkg
