@@ -1,0 +1,12 @@
+# GitHub Pages settings. In the repository go to Settings > Pages > "Deploy from a branch",
+# choose the main branch and the /docs folder.
+title: Apparatus
+description: Extension methods and helpers that make everyday C# code shorter and easier to read.
+remote_theme: just-the-docs/just-the-docs
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+
+# The pages in docs/api and docs/examples are generated. Run docs.cmd to refresh them.
+exclude:
+  - README.md
