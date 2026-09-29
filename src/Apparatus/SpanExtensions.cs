@@ -19,8 +19,25 @@
 
 namespace Apparatus;
 
+/// <summary>
+/// Helpers for <see cref="ReadOnlySpan{T}"/>.
+/// </summary>
 public static class SpanExtensions
 {
+    /// <summary>
+    /// Joins two spans into one new array. The first span comes first.
+    /// </summary>
+    /// <typeparam name="T">Item type.</typeparam>
+    /// <param name="s1">The first span.</param>
+    /// <param name="s2">The second span, added after the first.</param>
+    /// <returns>A new array holding all items of <paramref name="s1"/> followed by all items of <paramref name="s2"/>.</returns>
+    /// <example>
+    /// <code>
+    /// ReadOnlySpan&lt;int&gt; a = stackalloc int[] { 1, 2 };
+    /// ReadOnlySpan&lt;int&gt; b = stackalloc int[] { 3 };
+    /// int[] all = a.Concat(b); // { 1, 2, 3 }
+    /// </code>
+    /// </example>
     public static T[] Concat<T>(this ReadOnlySpan<T> s1, ReadOnlySpan<T> s2)
     {
         var array = new T[s1.Length + s2.Length];

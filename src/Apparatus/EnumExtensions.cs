@@ -19,8 +19,25 @@
 
 namespace Apparatus
 {
+    /// <summary>
+    /// Helpers for working with enumerations.
+    /// </summary>
     public static class EnumExtensions
     {
+        /// <summary>
+        /// Joins a list of enum values into one comma separated string, either as numbers or as names.
+        /// </summary>
+        /// <typeparam name="TEnum">The enum type.</typeparam>
+        /// <param name="items">The enum values to join.</param>
+        /// <param name="useEnumValue"><c>true</c> (default) to write the numeric values; <c>false</c> to write the names.</param>
+        /// <returns>A string like <c>"1,3"</c> or <c>"Red,Blue"</c>. Empty string for an empty list.</returns>
+        /// <example>
+        /// <code>
+        /// var colors = new[] { Color.Red, Color.Blue };
+        /// colors.ToCommaSeparatedList();      // "0,2"
+        /// colors.ToCommaSeparatedList(false); // "Red,Blue"
+        /// </code>
+        /// </example>
         public static string ToCommaSeparatedList<TEnum>(this IEnumerable<TEnum> items, bool useEnumValue = true) where TEnum : struct, IComparable, IConvertible, IFormattable
         {
             var enumType = typeof(TEnum);
@@ -28,9 +45,16 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Converts Enumeration type into a dictionary of names and values
+        /// Converts an enumeration type into a dictionary of its names and numeric values.
         /// </summary>
-        /// <param name="t">Enum type</param>
+        /// <param name="t">The enum type, for example <c>typeof(DayOfWeek)</c>.</param>
+        /// <returns>A dictionary where the key is the enum member name and the value is its <see cref="int"/> value.</returns>
+        /// <exception cref="NullReferenceException"><paramref name="t"/> is <c>null</c>.</exception>
+        /// <example>
+        /// <code>
+        /// var map = typeof(DayOfWeek).EnumToDictionary(); // { "Sunday": 0, "Monday": 1, ... }
+        /// </code>
+        /// </example>
         public static IDictionary<string, int> EnumToDictionary(this Type t)
         {
             if (t == null) throw new NullReferenceException();
