@@ -22,8 +22,35 @@ using System.Text;
 
 namespace Apparatus
 {
+    /// <summary>
+    /// Simple string encryption and decryption using a passphrase.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Not for sensitive data.</b> This class uses Triple DES in ECB mode with a key made from an MD5 hash of the passphrase.
+    /// These are old algorithms and modes. The same text always gives the same result, and there is no protection against tampering.
+    /// Use it only to lightly hide values (for example query string values). For passwords, personal data or anything that needs
+    /// real security, use AES-GCM from <c>System.Security.Cryptography</c>.
+    /// </para>
+    /// <para>
+    /// Only the first 48 characters of the passphrase are used. A shorter passphrase is padded with the letter X.
+    /// </para>
+    /// </remarks>
     public static class EncryptionUtility
     {
+        /// <summary>
+        /// Decrypts text that was encrypted by <see cref="EncryptString"/> with the same passphrase.
+        /// </summary>
+        /// <param name="source">The Base64 encrypted text.</param>
+        /// <param name="passphrase">The same passphrase that was used to encrypt.</param>
+        /// <returns>The original text.</returns>
+        /// <exception cref="FormatException"><paramref name="source"/> is not valid Base64.</exception>
+        /// <exception cref="System.Security.Cryptography.CryptographicException">The passphrase is wrong or the data is damaged.</exception>
+        /// <example>
+        /// <code>
+        /// string plain = encrypted.DecryptString("my secret phrase");
+        /// </code>
+        /// </example>
         public static string DecryptString([NotNull] this string source, [NotNull] string passphrase)
         {
             byte[] results;
@@ -65,6 +92,18 @@ namespace Apparatus
             return utf8.GetString(results);
         }
 
+        /// <summary>
+        /// Encrypts text with a passphrase and returns it as a Base64 string.
+        /// </summary>
+        /// <param name="source">The text to encrypt.</param>
+        /// <param name="passphrase">The secret phrase. Keep it private; you need the same one to decrypt.</param>
+        /// <returns>The encrypted text in Base64 format.</returns>
+        /// <example>
+        /// <code>
+        /// string encrypted = "hello".EncryptString("my secret phrase");
+        /// string plain = encrypted.DecryptString("my secret phrase"); // "hello"
+        /// </code>
+        /// </example>
         public static string EncryptString([NotNull] this string source, [NotNull] string passphrase)
         {
             byte[] results;

@@ -2,8 +2,20 @@
 
 namespace Apparatus
 {
+    /// <summary>
+    /// Safe helpers for creating and deleting folders. They check first, so they never fail just because the folder is (or is not) already there.
+    /// </summary>
     public static class DirectoryHelper
     {
+        /// <summary>
+        /// Creates a folder (and any missing parent folders) only if it does not exist yet.
+        /// </summary>
+        /// <param name="directory">Full or relative path of the folder.</param>
+        /// <example>
+        /// <code>
+        /// DirectoryHelper.CreateIfNotExists(@"C:\temp\reports");
+        /// </code>
+        /// </example>
         public static void CreateIfNotExists(string directory)
         {
             if (!Directory.Exists(directory))
@@ -12,6 +24,16 @@ namespace Apparatus
             }
         }
 
+        /// <summary>
+        /// Deletes a folder if it exists. The folder must be empty; use the overload with <c>recursive</c> to delete its content too.
+        /// </summary>
+        /// <param name="directory">Full or relative path of the folder.</param>
+        /// <exception cref="IOException">The folder exists but is not empty.</exception>
+        /// <example>
+        /// <code>
+        /// DirectoryHelper.DeleteIfExists(@"C:\temp\empty-folder");
+        /// </code>
+        /// </example>
         public static void DeleteIfExists(string directory)
         {
             if (Directory.Exists(directory))
@@ -20,6 +42,17 @@ namespace Apparatus
             }
         }
 
+        /// <summary>
+        /// Deletes a folder if it exists, and optionally everything inside it.
+        /// </summary>
+        /// <param name="directory">Full or relative path of the folder.</param>
+        /// <param name="recursive"><c>true</c> to also delete all files and sub-folders; <c>false</c> to delete only an empty folder.</param>
+        /// <exception cref="IOException"><paramref name="recursive"/> is <c>false</c> and the folder is not empty.</exception>
+        /// <example>
+        /// <code>
+        /// DirectoryHelper.DeleteIfExists(@"C:\temp\reports", true);
+        /// </code>
+        /// </example>
         public static void DeleteIfExists(string directory, bool recursive)
         {
             if (Directory.Exists(directory))
@@ -28,6 +61,15 @@ namespace Apparatus
             }
         }
 
+        /// <summary>
+        /// Creates the folder described by a <see cref="DirectoryInfo"/> only if it does not exist yet.
+        /// </summary>
+        /// <param name="directory">The folder to create.</param>
+        /// <example>
+        /// <code>
+        /// DirectoryHelper.CreateIfNotExists(new DirectoryInfo(@"C:\temp\reports"));
+        /// </code>
+        /// </example>
         public static void CreateIfNotExists(DirectoryInfo directory)
         {
             if (!directory.Exists)
@@ -37,12 +79,21 @@ namespace Apparatus
         }
     }
 
+    /// <summary>
+    /// Helpers for common file tasks: safe delete, file extension and async reading.
+    /// </summary>
     public static class FileHelper
     {
         /// <summary>
-        /// Checks and deletes given file if it does exists.
+        /// Deletes a file if it exists.
         /// </summary>
-        /// <param name="filePath">Path of the file</param>
+        /// <param name="filePath">Path of the file.</param>
+        /// <returns><c>true</c> if the file existed and was deleted; <c>false</c> if there was nothing to delete.</returns>
+        /// <example>
+        /// <code>
+        /// bool deleted = FileHelper.DeleteIfExists(@"C:\temp\old.log");
+        /// </code>
+        /// </example>
         public static bool DeleteIfExists(string filePath)
         {
             if (!File.Exists(filePath))
@@ -55,13 +106,20 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Gets extension of a file.
+        /// Gets the extension of a file name, without the dot.
         /// </summary>
-        /// <param name="fileNameWithExtension"></param>
+        /// <param name="fileNameWithExtension">File name or path, for example <c>"report.pdf"</c>. Must not be <c>null</c> or empty.</param>
         /// <returns>
-        /// Returns extension without dot.
-        /// Returns null if given <paramref name="fileNameWithExtension"></paramref> does not include dot.
+        /// The text after the last dot, for example <c>"pdf"</c>. Returns an empty string if the name ends with a dot.
+        /// Returns <c>null</c> if the name has no dot.
         /// </returns>
+        /// <exception cref="ArgumentNullException"><paramref name="fileNameWithExtension"/> is <c>null</c> or empty.</exception>
+        /// <example>
+        /// <code>
+        /// FileHelper.GetExtension("archive.tar.gz"); // "gz"
+        /// FileHelper.GetExtension("README");         // null
+        /// </code>
+        /// </example>
         public static string GetExtension(string fileNameWithExtension)
         {
             fileNameWithExtension.ThrowIfNullOrEmpty();
@@ -76,10 +134,16 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Opens a text file, reads all lines of the file, and then closes the file.
+        /// Reads a whole text file into one string, without blocking the calling thread.
         /// </summary>
-        /// <param name="path">The file to open for reading.</param>
-        /// <returns>A string containing all lines of the file.</returns>
+        /// <param name="path">Path of the file to read.</param>
+        /// <returns>The full text of the file.</returns>
+        /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+        /// <example>
+        /// <code>
+        /// string text = await FileHelper.ReadAllTextAsync("notes.txt");
+        /// </code>
+        /// </example>
         public static async Task<string> ReadAllTextAsync(string path)
         {
             using (var reader = File.OpenText(path))
@@ -89,10 +153,16 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Opens a text file, reads all lines of the file, and then closes the file.
+        /// Reads a whole file into a byte array, without blocking the calling thread.
         /// </summary>
-        /// <param name="path">The file to open for reading.</param>
-        /// <returns>A string containing all lines of the file.</returns>
+        /// <param name="path">Path of the file to read.</param>
+        /// <returns>All bytes of the file.</returns>
+        /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+        /// <example>
+        /// <code>
+        /// byte[] data = await FileHelper.ReadAllBytesAsync("image.png");
+        /// </code>
+        /// </example>
         public static async Task<byte[]> ReadAllBytesAsync(string path)
         {
             using (var stream = File.Open(path, FileMode.Open))
@@ -104,16 +174,22 @@ namespace Apparatus
         }
 
         /// <summary>
-        /// Opens a text file, reads all lines of the file, and then closes the file.
+        /// Reads a text file line by line, without blocking the calling thread, and returns the lines as an array.
         /// </summary>
-        /// <param name="path">The file to open for reading.</param>
-        /// <param name="encoding">Encoding of the file. Default is UTF8</param>
-        /// <param name="fileMode">Specifies how the operating system should open a file. Default is Open</param>
-        /// <param name="fileAccess">Defines constants for read, write, or read/write access to a file. Default is Read</param>
-        /// <param name="fileShare">Contains constants for controlling the kind of access other FileStream objects can have to the same file. Default is Read</param>
-        /// <param name="bufferSize">Length of StreamReader buffer. Default is 4096.</param>
-        /// <param name="fileOptions">Indicates FileStream options. Default is Asynchronous (The file is to be used for asynchronous reading.) and SequentialScan (The file is to be accessed sequentially from beginning to end.) </param>
-        /// <returns>A string containing all lines of the file.</returns>
+        /// <param name="path">Path of the file to read.</param>
+        /// <param name="encoding">Text encoding of the file. Default is UTF-8.</param>
+        /// <param name="fileMode">How the operating system should open the file. Default is <see cref="FileMode.Open"/>.</param>
+        /// <param name="fileAccess">Read or write access. Default is <see cref="FileAccess.Read"/>.</param>
+        /// <param name="fileShare">What other readers or writers may do with the file while it is open. Default is <see cref="FileShare.Read"/>.</param>
+        /// <param name="bufferSize">Size of the read buffer in bytes. Default is 4096.</param>
+        /// <param name="fileOptions">Extra file options. Default is <see cref="FileOptions.Asynchronous"/> and <see cref="FileOptions.SequentialScan"/>.</param>
+        /// <returns>One array item per line. Line break characters are not included.</returns>
+        /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+        /// <example>
+        /// <code>
+        /// string[] lines = await FileHelper.ReadAllLinesAsync("data.csv");
+        /// </code>
+        /// </example>
         public static async Task<string[]> ReadAllLinesAsync(string path,
             Encoding encoding = null,
             FileMode fileMode = FileMode.Open,

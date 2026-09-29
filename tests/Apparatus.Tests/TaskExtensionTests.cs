@@ -1,87 +1,88 @@
-﻿using Apparatus;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+using Apparatus;
 using Xunit;
 
-namespace ApparatusTests
+namespace ApparatusTests;
+
+public class TaskExtensionTests
 {
-
-    public class TaskExtensionTests
+    private static async Task<int> ResultTestMethod()
     {
-        private async Task<int> ResultTestMethod()
-        {
-            return 1;
-        }
-
-        private async Task<int> ErrorTestMethod()
-        {
-            throw new MyException("my test");
-        }
-
-        [Fact]
-        public void TaskResultPassCorrectly()
-        {
-            Assert.Equal(1, ResultTestMethod().Await());
-        }
-
-        [Fact]
-        public async Task TaskExceptionIsVisibleCorrectly()
-        {
-            await Assert.ThrowsAsync<MyException>(() => ErrorTestMethod());
-
-            //Assert.That(() => .Await(),
-            //    Throws.TypeOf<MyException>().With.Message.EqualTo("my test")
-            //    );
-        }
-
-        [Fact]
-        public void TaskWithHttpClient()
-        {
-            HttpClient client = new HttpClient();
-            var result = CallYahoo(client).Await();
-            Assert.NotNull(result);
-            var content = ReadContent(result).Await();
-            Assert.NotEmpty(content);
-        }
-
-        //[Fact]
-        //public void SendGridEmailTrail()
-        //{
-        //    var client = new SendGrid.SendGridClient(""); // pull api key from somewhere.
-        //    var msg = new SendGrid.Helpers.Mail.SendGridMessage();
-        //    msg.AddTo("ashish@ideatoworking.com");
-        //    msg.SetFrom("test@bluesombrero.com");
-        //    msg.SetGlobalSubject("this is test");
-        //    msg.HtmlContent = "this is content";
-
-        //    //msg.SetSandBoxMode(true);
-
-        //    SendGrid.Response response = client.SendEmailAsync(msg).Await();
-        //    Assert.Equal("Accepted", response.StatusCode.ToString());
-        //}
-
-        private async Task<HttpResponseMessage> CallYahoo(HttpClient client)
-        {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://www.yahoo.com/");
-            return await client.SendAsync(httpRequest).ConfigureAwait(false);
-        }
-
-        private async Task<string> ReadContent(HttpResponseMessage result)
-        {
-            return await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-        }
+        await Task.Yield();
+        return 1;
     }
 
-
-    [System.Serializable]
-    public class MyException : Exception
+    private static async Task<int> ErrorTestMethod()
     {
-        public MyException() { }
-        public MyException(string message) : base(message) { }
-        public MyException(string message, Exception inner) : base(message, inner) { }
-        protected MyException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        await Task.Yield();
+        throw new MyException("my test");
     }
+
+    private static async Task VoidErrorTestMethod()
+    {
+        await Task.Yield();
+        throw new MyException("void test");
+    }
+
+    [Fact]
+    public void Await_Generic_ReturnsResult() => Assert.Equal(1, ResultTestMethod().Await());
+
+    [Fact]
+    public void Await_Generic_ThrowsOriginalException()
+    {
+        var ex = Assert.Throws<MyException>(() => ErrorTestMethod().Await());
+        Assert.Equal("my test", ex.Message);
+    }
+
+    [Fact]
+    public void Await_Generic_AlreadyCompletedTask() => Assert.Equal(5, Task.FromResult(5).Await());
+
+    [Fact]
+    public void Await_NonGeneric_WaitsForCompletion()
+    {
+        var done = false;
+        Task.Run(async () => { await Task.Delay(20); done = true; }).Await();
+        Assert.True(done);
+    }
+
+    [Fact]
+    public void Await_NonGeneric_ThrowsOriginalException()
+    {
+        var ex = Assert.Throws<MyException>(() => VoidErrorTestMethod().Await());
+        Assert.Equal("void test", ex.Message);
+    }
+
+    [Fact]
+    public void Await_Cancelled_ThrowsOperationCanceled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => Task.FromCanceled<int>(cts.Token).Await());
+    }
+
+    [Fact]
+    public void RunSync_Generic_ReturnsResult() =>
+        Assert.Equal(42, Apparatus.TaskExtensions.RunSync(async () => { await Task.Delay(1); return 42; }));
+
+    [Fact]
+    public void RunSync_Generic_ThrowsOriginalException() =>
+        Assert.Throws<MyException>(() => Apparatus.TaskExtensions.RunSync(() => ErrorTestMethod()));
+
+    [Fact]
+    public void RunSync_NonGeneric_RunsFunction()
+    {
+        var done = false;
+        Apparatus.TaskExtensions.RunSync(async () => { await Task.Delay(1); done = true; });
+        Assert.True(done);
+    }
+
+    [Fact]
+    public void RunSync_NonGeneric_ThrowsOriginalException() =>
+        Assert.Throws<MyException>(() => Apparatus.TaskExtensions.RunSync(() => VoidErrorTestMethod()));
+}
+
+public class MyException : Exception
+{
+    public MyException() { }
+    public MyException(string message) : base(message) { }
+    public MyException(string message, Exception inner) : base(message, inner) { }
 }

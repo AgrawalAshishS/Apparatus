@@ -19,33 +19,31 @@
 
 namespace Apparatus
 {
+    /// <summary>
+    /// Helpers to run async code from normal (blocking) code.
+    /// </summary>
+    /// <remarks>
+    /// Prefer <c>await</c> whenever you can. Use these only in places that cannot be async, such as a constructor or a <c>Main</c> method written without async.
+    /// </remarks>
     public static class TaskExtensions
     {
         private static readonly TaskFactory _myTaskFactory = new TaskFactory(CancellationToken.None,
             TaskCreationOptions.None, TaskContinuationOptions.None, TaskScheduler.Default);
 
         /// <summary>
-        /// This shorthand method hides complexity involved in running async method as blocking method.
-        /// Given task will be awaited and then result returned.
-        /// In case of exception, it will throw inner exception instead of default AggregateException.
-        /// If there are multiple inner exceptions, it will throw AggregateException.
-        /// You can use this short hand or can simply put this in your code
-        /// <code>
-        /// try
-        /// {
-        ///     return Task.Run(async() => await [ your method ]).Result;
-        /// }
-        /// catch (AggregateException ae)
-        /// {
-        ///     ae.Flatten();
-        ///     if (ae.InnerExceptions.Count > 1) throw ae;
-        ///     throw ae.InnerException;
-        /// }
-        /// </code>
+        /// Waits for a task to finish and returns its result. Use it to call async code from non-async code.
+        /// The task runs on the thread pool, so it does not deadlock on UI or ASP.NET classic synchronization contexts.
+        /// If the task fails, the real exception is thrown, not an <see cref="AggregateException"/>.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="task">Function that should be awaited.</param>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of the task result.</typeparam>
+        /// <param name="task">The task to wait for.</param>
+        /// <returns>The result of the task.</returns>
+        /// <exception cref="OperationCanceledException">The task was cancelled.</exception>
+        /// <example>
+        /// <code>
+        /// string text = File.ReadAllTextAsync("a.txt").Await();
+        /// </code>
+        /// </example>
         public static T Await<T>(this Task<T> task)
         {
             try
@@ -65,6 +63,18 @@ namespace Apparatus
             }
         }
 
+        /// <summary>
+        /// Waits for a task to finish. Use it to call async code from non-async code.
+        /// The task runs on the thread pool, so it does not deadlock on UI or ASP.NET classic synchronization contexts.
+        /// If the task fails, the real exception is thrown, not an <see cref="AggregateException"/>.
+        /// </summary>
+        /// <param name="task">The task to wait for.</param>
+        /// <exception cref="OperationCanceledException">The task was cancelled.</exception>
+        /// <example>
+        /// <code>
+        /// Task.Delay(100).Await();
+        /// </code>
+        /// </example>
         public static void Await(this Task task)
         {
             try
@@ -84,6 +94,17 @@ namespace Apparatus
             }
         }
 
+        /// <summary>
+        /// Runs an async function on the thread pool, waits for it, and returns its result.
+        /// </summary>
+        /// <typeparam name="TResult">Type of the result.</typeparam>
+        /// <param name="func">The async function to run.</param>
+        /// <returns>The result of the function.</returns>
+        /// <example>
+        /// <code>
+        /// int value = TaskExtensions.RunSync(async () =&gt; { await Task.Delay(10); return 42; });
+        /// </code>
+        /// </example>
         public static TResult RunSync<TResult>(Func<Task<TResult>> func)
         {
             return _myTaskFactory.StartNew(() =>
@@ -92,6 +113,15 @@ namespace Apparatus
             }).Unwrap().GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Runs an async function on the thread pool and waits for it to finish.
+        /// </summary>
+        /// <param name="func">The async function to run.</param>
+        /// <example>
+        /// <code>
+        /// TaskExtensions.RunSync(async () =&gt; await Task.Delay(10));
+        /// </code>
+        /// </example>
         public static void RunSync(Func<Task> func)
         {
             _myTaskFactory.StartNew(() =>

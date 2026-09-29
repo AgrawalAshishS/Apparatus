@@ -27,22 +27,36 @@ namespace Apparatus
     {
 
         /// <summary>
-        /// Check if collection is null or empty (having no element).
+        /// Checks whether a collection is <c>null</c> or has no items.
         /// </summary>
-        /// <typeparam name="T">Type of collection.</typeparam>
-        /// <param name="source">Collection to check.</param>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of the items.</typeparam>
+        /// <param name="source">The collection to check. May be <c>null</c>.</param>
+        /// <returns><c>true</c> if <paramref name="source"/> is <c>null</c> or empty; otherwise <c>false</c>.</returns>
+        /// <example>
+        /// <code>
+        /// List&lt;int&gt;? list = null;
+        /// list.IsNullOrEmpty(); // true
+        /// </code>
+        /// </example>
         public static bool IsNullOrEmpty<T>(this ICollection<T> source)
         {
             return source == null || source.Count <= 0;
         }
 
         /// <summary>
-        /// Remove all element from source matching with destination.
+        /// Removes from a collection every item that also appears in another list.
+        /// Each matching item is removed once per occurrence in <paramref name="items"/>.
         /// </summary>
-        /// <typeparam name="T">Type of collection.</typeparam>
-        /// <param name="source">>Collection to check.</param>
-        /// <param name="items">Items to remove from source.</param>
+        /// <typeparam name="T">Type of the items.</typeparam>
+        /// <param name="source">The collection to remove items from. Must not be <c>null</c>.</param>
+        /// <param name="items">The items to remove. Must not be <c>null</c>.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="items"/> is <c>null</c>.</exception>
+        /// <example>
+        /// <code>
+        /// var numbers = new List&lt;int&gt; { 1, 2, 3, 4 };
+        /// numbers.RemoveAll(new[] { 2, 4 }); // numbers is now { 1, 3 }
+        /// </code>
+        /// </example>
         public static void RemoveAll<T>(this ICollection<T> source, IEnumerable<T> items)
         {
             source.ThrowIfNull(nameof(source));
