@@ -6,6 +6,7 @@ namespace ApparatusTests;
 public class EnumExtensionsTests
 {
     private enum Color { Red = 0, Green = 1, Blue = 5 }
+    private enum SmallColor : byte { Red = 1 }
 
     [Fact]
     public void ToCommaSeparatedList_DefaultUsesNumbers() =>
@@ -32,4 +33,12 @@ public class EnumExtensionsTests
     [Fact]
     public void EnumToDictionary_Null_Throws() =>
         Assert.Throws<NullReferenceException>(() => ((Type)null!).EnumToDictionary());
+
+    [Fact]
+    public void EnumToDictionary_NonIntBaseType_CurrentlyThrows() =>
+        Assert.Throws<InvalidCastException>(() => typeof(SmallColor).EnumToDictionary());
+
+    [Fact(Skip = "Known issue: EnumToDictionary fails for enums that do not use int as base type. Waiting for owner approval to fix.")]
+    public void EnumToDictionary_NonIntBaseType_ShouldWork() =>
+        Assert.Equal(1, typeof(SmallColor).EnumToDictionary()["Red"]);
 }
