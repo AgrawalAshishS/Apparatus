@@ -27,20 +27,36 @@ namespace Apparatus.Exceptions
     /// </summary>
     public class Exception : System.Exception
     {
+        /// <summary>Creates an exception with no message and an empty <see cref="ErrorCode"/>.</summary>
         public Exception() { }
+        /// <summary>Creates an exception with a message.</summary>
+        /// <param name="message">The error message.</param>
         public Exception(string message) : base(message) { }
+        /// <summary>Creates an exception with a message and the exception that caused it.</summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="inner">The exception that caused this one.</param>
         public Exception(string message, System.Exception inner) : base(message, inner) { }
 
+        /// <summary>Creates an exception with an error code and a message.</summary>
+        /// <param name="errorCode">A short code the UI or caller can use to decide what to show, for example <c>"USER_NOT_FOUND"</c>.</param>
+        /// <param name="message">The error message.</param>
         public Exception(string errorCode, string message) : base(message)
         {
             this.ErrorCode = errorCode;
         }
 
+        /// <summary>Creates an exception with an error code, a message and the exception that caused it.</summary>
+        /// <param name="errorCode">A short code the UI or caller can use to decide what to show.</param>
+        /// <param name="message">The error message.</param>
+        /// <param name="inner">The exception that caused this one.</param>
         public Exception(string errorCode, string message, System.Exception inner) : base(message, inner)
         {
             this.ErrorCode = errorCode;
         }
 
+        /// <summary>
+        /// Gets or sets a short machine readable code for this error. Empty when no code was given.
+        /// </summary>
         public string ErrorCode { get; set; } = string.Empty;
     }
 }

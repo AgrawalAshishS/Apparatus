@@ -31,8 +31,17 @@ namespace Apparatus
     public static class NameValueCollectionExtensions
     {
         /// <summary>
-        /// Converts NameValueCollection to Dictionary<string, string>.
+        /// Converts a <see cref="NameValueCollection"/> (for example query string values) to a <see cref="Dictionary{TKey, TValue}"/>.
         /// </summary>
+        /// <param name="source">The collection to convert.</param>
+        /// <returns>A dictionary with one entry per key. If a key has several values, they are joined with a comma (standard <see cref="NameValueCollection"/> behavior).</returns>
+        /// <exception cref="NullReferenceException"><paramref name="source"/> is <c>null</c>.</exception>
+        /// <example>
+        /// <code>
+        /// var query = HttpUtility.ParseQueryString("a=1&amp;b=2");
+        /// Dictionary&lt;string, string&gt; map = query.ToDictionary(); // { "a": "1", "b": "2" }
+        /// </code>
+        /// </example>
         public static Dictionary<string, string> ToDictionary([NotNull] this NameValueCollection source)
         {
             return source.AllKeys.ToDictionary(k => k, k => source[k]);
