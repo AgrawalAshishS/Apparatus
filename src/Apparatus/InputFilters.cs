@@ -28,38 +28,45 @@ namespace Apparatus
     using System.Text.RegularExpressions;
 
     /// <summary>
-    /// The input filters. Copied from old DotNetNuke source code. Provide basic input text filters.
+    /// Basic clean-up of text typed by users before it is shown or stored.
+    /// Choose what to clean with <see cref="FilterFlag"/>, then call <see cref="InputFilter"/> or <see cref="ValidateInput"/>.
     /// </summary>
+    /// <remarks>
+    /// These filters are simple text replacements. They help, but they are <b>not</b> a full security solution.
+    /// Always also use proper HTML encoding when writing user text into a page, and parameterized queries for SQL.
+    /// The code is based on the input filters of the old DotNetNuke project.
+    /// </remarks>
     public static class InputFilters
     {
         /// <summary>
-        /// The filter flag.
+        /// Options for <see cref="InputFilter"/>. Combine several with <c>|</c>, for example <c>FilterFlag.NoMarkup | FilterFlag.NoScripting</c>.
         /// </summary>
         [Flags]
         public enum FilterFlag
         {
             /// <summary>
-            /// The multi line.
+            /// Replaces line breaks with <c>&lt;br /&gt;</c> so multi-line text keeps its shape in HTML. Ignored when <see cref="NoSQL"/> is also set.
             /// </summary>
             MultiLine = 1,
 
             /// <summary>
-            /// The no markup.
+            /// If the text contains HTML tags, HTML-encodes the whole text so the tags are shown as plain text. Ignored when <see cref="NoSQL"/> is also set.
             /// </summary>
             NoMarkup = 2,
 
             /// <summary>
-            /// The no scripting.
+            /// Replaces risky parts such as <c>&lt;script&gt;</c>, <c>&lt;iframe&gt;</c>, <c>javascript:</c> and <c>onerror</c> with a space. Ignored when <see cref="NoSQL"/> is also set.
             /// </summary>
             NoScripting = 4,
 
             /// <summary>
-            /// The no sql.
+            /// Replaces common SQL words and symbols (such as <c>select</c>, <c>drop</c>, <c>--</c>, <c>;</c>) with a space and doubles single quotes.
+            /// When set, the <see cref="MultiLine"/>, <see cref="NoMarkup"/> and <see cref="NoScripting"/> filters are skipped.
             /// </summary>
             NoSQL = 8,
 
             /// <summary>
-            /// The no angle brackets.
+            /// Removes all <c>&lt;</c> and <c>&gt;</c> characters.
             /// </summary>
             NoAngleBrackets = 16
         }
@@ -249,20 +256,18 @@ namespace Apparatus
             return Regex.IsMatch(strInput, pattern, options);
         }
 
-        /// -----------------------------------------------------------------------------
         /// <summary>
-        /// This function applies security filtering to the UserInput string.
+        /// Cleans user text by applying the filters you choose.
         /// </summary>
-        /// <param name="userInput">
-        /// This is the string to be filtered
-        /// </param>
-        /// <param name="filterType">
-        /// Flags which designate the filters to be applied
-        /// </param>
-        /// <returns>
-        /// Filtered UserInput
-        /// </returns>
-        /// -----------------------------------------------------------------------------
+        /// <param name="userInput">The text to clean. A <c>null</c> value gives an empty string.</param>
+        /// <param name="filterType">The filters to apply. Combine several with <c>|</c>.</param>
+        /// <returns>The cleaned text, or <see cref="string.Empty"/> when <paramref name="userInput"/> is <c>null</c>.</returns>
+        /// <example>
+        /// <code>
+        /// string safe = InputFilters.InputFilter("&lt;b&gt;hi&lt;/b&gt;", InputFilters.FilterFlag.NoMarkup);
+        /// // "&amp;lt;b&amp;gt;hi&amp;lt;/b&amp;gt;"
+        /// </code>
+        /// </example>
         public static string InputFilter(string userInput, FilterFlag filterType)
         {
             if (userInput == null)
@@ -301,20 +306,18 @@ namespace Apparatus
             return tempInput;
         }
 
-        /// -----------------------------------------------------------------------------
         /// <summary>
-        /// This function applies security filtering to the UserInput string, and reports
-        ///     whether the input string is valid.
+        /// Checks whether text is already clean, which means the chosen filters would not change it.
         /// </summary>
-        /// <param name="userInput">
-        /// This is the string to be filtered
-        /// </param>
-        /// <param name="filterType">
-        /// Flags which designate the filters to be applied
-        /// </param>
-        /// <returns>
-        /// </returns>
-        /// -----------------------------------------------------------------------------
+        /// <param name="userInput">The text to check.</param>
+        /// <param name="filterType">The filters to apply. Combine several with <c>|</c>.</param>
+        /// <returns><c>true</c> if the filtered text is the same as the input; otherwise <c>false</c>. A <c>null</c> input returns <c>false</c> because it is filtered to an empty string.</returns>
+        /// <example>
+        /// <code>
+        /// InputFilters.ValidateInput("hello", InputFilters.FilterFlag.NoMarkup);     // true
+        /// InputFilters.ValidateInput("&lt;b&gt;hi&lt;/b&gt;", InputFilters.FilterFlag.NoMarkup); // false
+        /// </code>
+        /// </example>
         public static bool ValidateInput(string userInput, FilterFlag filterType)
         {
             var filteredInput = InputFilter(userInput, filterType);
