@@ -59,6 +59,38 @@ public class TaskExtensionTests
         Assert.ThrowsAny<OperationCanceledException>(() => Task.FromCanceled<int>(cts.Token).Await());
     }
 
+    // A task that faults with an AggregateException itself reaches the catch block in Await.
+    [Fact]
+    public void Await_Generic_AggregateWithOneInner_ThrowsInner()
+    {
+        var task = Task.FromException<int>(new AggregateException(new MyException("only")));
+        var ex = Assert.Throws<MyException>(() => task.Await());
+        Assert.Equal("only", ex.Message);
+    }
+
+    [Fact]
+    public void Await_Generic_AggregateWithManyInners_ThrowsAggregate()
+    {
+        var task = Task.FromException<int>(new AggregateException(new MyException("a"), new MyException("b")));
+        var ex = Assert.Throws<AggregateException>(() => task.Await());
+        Assert.Equal(2, ex.InnerExceptions.Count);
+    }
+
+    [Fact]
+    public void Await_NonGeneric_AggregateWithOneInner_ThrowsInner()
+    {
+        var task = Task.FromException(new AggregateException(new MyException("only")));
+        Assert.Throws<MyException>(() => task.Await());
+    }
+
+    [Fact]
+    public void Await_NonGeneric_AggregateWithManyInners_ThrowsAggregate()
+    {
+        var task = Task.FromException(new AggregateException(new MyException("a"), new MyException("b")));
+        var ex = Assert.Throws<AggregateException>(() => task.Await());
+        Assert.Equal(2, ex.InnerExceptions.Count);
+    }
+
     [Fact]
     public void RunSync_Generic_ReturnsResult() =>
         Assert.Equal(42, Apparatus.TaskExtensions.RunSync(async () => { await Task.Delay(1); return 42; }));
